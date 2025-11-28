@@ -8,7 +8,7 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: {
-    default: 'ChatGPT Lite',
+    default: 'vitagroup-GPT',
     template: `%s - ChatGPT Lite`
   },
   description: 'AI assistant powered by ChatGPT',

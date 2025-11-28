@@ -30,21 +30,13 @@ export const Header = () => {
           </Button>
           <Link href="/" className="flex items-center cursor-pointer select-none">
             <h2 className="text-lg font-semibold text-foreground max-w-[120px] sm:max-w-[200px] truncate">
-              ChatGPT Lite
+              vitagroup-GPT
             </h2>
           </Link>
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
           <nav className="flex items-center gap-1 sm:gap-2">
             <ThemeToggle />
-            <a
-              href="https://github.com/blrchen/chatgpt-lite"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-full p-2 transition-colors hover:bg-accent text-foreground"
-            >
-              <FaGithub className="text-xl" />
-            </a>
           </nav>
         </div>
       </div>
