@@ -220,46 +220,50 @@ const Chat = (props: ChatProps, ref: any) => {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl">
                   <div
-                    className="p-4 rounded-xl border border-border hover:border-accent-foreground cursor-pointer transition-colors"
+                    className="p-4 rounded-xl border border-border hover:border-sidebar cursor-pointer transition-colors"
+                    onClick={() => {
+                      setMessage('What does vitagroup do?')
+                      textAreaRef.current?.focus()
+                    }}
+                  >
+                    <p className="text-foreground text-sm">What does vitagroup do?</p>
+                  </div>
+                  <div
+                    className="p-4 rounded-xl border border-border hover:border-sidebar cursor-pointer transition-colors"
                     onClick={() => {
                       setMessage(
-                        'Write a screenplay for an engaging and fun Chemistry 101 explainer video covering topics like atomic structure, chemical bonding and reactions.'
+                        'What are the main benefits of HIP for hospitals and care providers?'
                       )
                       textAreaRef.current?.focus()
                     }}
                   >
                     <p className="text-foreground text-sm">
-                      Write a screenplay for an engaging and fun Chemistry 101 explainer video
+                      What are the main benefits of HIP for hospitals and care providers?
                     </p>
                   </div>
                   <div
-                    className="p-4 rounded-xl border border-border hover:border-accent-foreground cursor-pointer transition-colors"
+                    className="p-4 rounded-xl border border-border hover:border-sidebar cursor-pointer transition-colors"
                     onClick={() => {
-                      setMessage('Explain quantum computing in simple terms')
+                      setMessage('How does vitagroup make healthcare more accessible to patients?')
                       textAreaRef.current?.focus()
                     }}
                   >
                     <p className="text-foreground text-sm">
-                      Explain quantum computing in simple terms
+                      How does vitagroup make healthcare more accessible to patients?
                     </p>
                   </div>
                   <div
-                    className="p-4 rounded-xl border border-border hover:border-accent-foreground cursor-pointer transition-colors"
+                    className="p-4 rounded-xl border border-border hover:border-sidebar cursor-pointer transition-colors"
                     onClick={() => {
-                      setMessage('Create a workout plan for beginners')
+                      setMessage(
+                        'How does vitagroup enable digital and AI-driven healthcare innovations?'
+                      )
                       textAreaRef.current?.focus()
                     }}
                   >
-                    <p className="text-foreground text-sm">Create a workout plan for beginners</p>
-                  </div>
-                  <div
-                    className="p-4 rounded-xl border border-border hover:border-accent-foreground cursor-pointer transition-colors"
-                    onClick={() => {
-                      setMessage('Help me plan a trip to New Zealand')
-                      textAreaRef.current?.focus()
-                    }}
-                  >
-                    <p className="text-foreground text-sm">Help me plan a trip to New Zealand</p>
+                    <p className="text-foreground text-sm">
+                      How does vitagroup enable digital and AI-driven healthcare innovations?
+                    </p>
                   </div>
                 </div>
               </div>
@@ -295,7 +299,7 @@ const Chat = (props: ChatProps, ref: any) => {
             </div>
           )}
           <div className="relative">
-            <div className="flex items-end gap-3 bg-secondary rounded-3xl border border-border focus-within:border-accent-foreground transition-all duration-200">
+            <div className="flex items-end gap-3 bg-secondary rounded-3xl border border-border focus-within:border-sidebar transition-all duration-200">
               <div className="flex-1 px-4 py-3 min-h-[52px] flex items-center">
                 <ContentEditable
                   innerRef={textAreaRef}
