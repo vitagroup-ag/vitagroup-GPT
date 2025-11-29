@@ -113,10 +113,10 @@ export const SideBar = () => {
               type="button"
               variant="ghost"
               onClick={() => onOpenPersonaPanel?.('chat')}
-              className="w-full justify-start rounded-lg"
+              className="w-full justify-start rounded-lg text-background hover:text-foreground"
             >
               <RiRobot2Line className="w-4 h-4 mr-2" />
-              <span className="text-sm text-background">Persona Store</span>
+              <span className="text-sm">Persona Store</span>
             </Button>
           </div>
         </div>
