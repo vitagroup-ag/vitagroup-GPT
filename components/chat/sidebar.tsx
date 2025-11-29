@@ -53,7 +53,7 @@ export const SideBar = () => {
           toggleSidebar ? 'md:block' : 'md:hidden'
         )}
       >
-        <div className="flex flex-col h-full p-4">
+        <div className="flex flex-col h-full p-4 bg-sidebar">
           {/* New Chat Button */}
           <Button
             type="button"
@@ -61,25 +61,25 @@ export const SideBar = () => {
               onCreateChat?.(DefaultPersonas[0])
               closeSidebarOnMobile()
             }}
-            className="mb-6 bg-secondary hover:bg-secondary/80 border border-border text-foreground rounded-full py-2 px-4 flex items-center gap-2 transition-colors"
+            className="mb-6 bg-secondary hover:bg-secondary/5 hover:text-background border border-border text-foreground rounded-full py-2 px-4 flex items-center gap-2 transition-colors"
           >
             <HiOutlinePlus className="w-4 h-4" />
             <span className="font-medium">New chat</span>
           </Button>
           {/* Recent Section */}
           <div className="mb-4">
-            <h3 className="text-muted-foreground text-sm font-medium mb-3">Recent</h3>
+            <h3 className="text-background text-sm font-medium mb-3">Recent</h3>
           </div>
           {/* Chat List */}
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 text-background">
             <div className="space-y-1">
               {chatList.map((chat) => (
                 <div
                   key={chat.id}
                   className={clsx(
-                    'group relative rounded-lg px-3 py-2 cursor-pointer transition-colors hover:bg-accent',
+                    'group relative rounded-lg px-3 py-2 cursor-pointer transition-colors text-background hover:bg-accent hover:text-foreground',
                     {
-                      'bg-accent': currentChatRef?.current?.id === chat.id
+                      'bg-accent text-foreground': currentChatRef?.current?.id === chat.id
                     }
                   )}
                   onClick={() => {
@@ -88,11 +88,10 @@ export const SideBar = () => {
                   }}
                 >
                   <div className="flex items-center gap-3">
-                    <BiMessageDetail className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                    <span className="truncate text-foreground text-sm">
-                      {chat.persona?.name || 'New Chat'}
-                    </span>
+                    <BiMessageDetail className="w-4 h-4 text-current flex-shrink-0" />
+                    <span className="truncate text-sm">{chat.persona?.name || 'New Chat'}</span>
                   </div>
+
                   <Button
                     size="icon"
                     variant="ghost"
@@ -102,7 +101,7 @@ export const SideBar = () => {
                       onDeleteChat?.(chat)
                     }}
                   >
-                    <AiOutlineCloseCircle className="w-4 h-4" />
+                    <AiOutlineCloseCircle className="w-4 h-4 text-current" />
                   </Button>
                 </div>
               ))}
@@ -117,7 +116,7 @@ export const SideBar = () => {
               className="w-full justify-start rounded-lg"
             >
               <RiRobot2Line className="w-4 h-4 mr-2" />
-              <span className="text-sm">Persona Store</span>
+              <span className="text-sm text-background">Persona Store</span>
             </Button>
           </div>
         </div>

@@ -10,7 +10,7 @@ const ChatProvider = () => {
 
   return (
     <ChatContext.Provider value={provider}>
-      <div className="h-full flex flex-col bg-background">
+      <div className="h-full flex flex-col">
         <Header />
         <div className="relative flex-1 flex overflow-hidden">
           <SideBar />

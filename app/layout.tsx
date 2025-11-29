@@ -5,6 +5,7 @@ import { AppContextProvider } from '@/contexts/app'
 import { ThemeProvider } from '@/providers/ThemesProvider'
 
 import './globals.css'
+import '../public/vitagroup.png'
 
 export const metadata: Metadata = {
   title: {
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
   },
   description: 'AI assistant powered by ChatGPT',
   icons: {
-    icon: '/favicon.ico',
+    icon: '/vitagroup.png',
     shortcut: '/favicon-16x16.png',
     apple: '/apple-touch-icon.png'
   }
@@ -26,9 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <AppContextProvider>
           <ThemeProvider attribute="class" disableTransitionOnChange defaultTheme="light">
             <TooltipProvider>
-              <main className="h-full flex flex-col flex-1 bg-background text-foreground">
-                {children}
-              </main>
+              <main className="h-full flex flex-col flex-1 text-foreground">{children}</main>
             </TooltipProvider>
           </ThemeProvider>
         </AppContextProvider>
