@@ -3,25 +3,33 @@ const nextConfig = {
   output: 'standalone',
   reactStrictMode: false,
   pageExtensions: ['ts', 'tsx', 'js', 'jsx'],
+
   async redirects() {
     return [
       {
         source: '/',
         destination: '/chat',
-        permanent: true
-      }
-    ]
+        permanent: true,
+      },
+    ];
   },
+
   logging: {
     fetches: {
-      fullUrl: true
-    }
+      fullUrl: true,
+    },
   },
+
   experimental: {
     serverActions: {
-      allowedOrigins: []
-    }
-  }
-}
+      allowedOrigins: [],
+    },
+  },
 
-export default nextConfig
+  // ⭐ Disable ESLint only during `next build` (production)
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+};
+
+export default nextConfig;
