@@ -15,7 +15,6 @@ import { FiSend } from 'react-icons/fi'
 import sanitizeHtml from 'sanitize-html'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-// Reordered imports to satisfy linter
 import { ScrollArea } from '@/components/ui/scroll-area'
 import ChatContext from './chatContext'
 import type { Chat, ChatMessage } from './interface'
@@ -30,9 +29,6 @@ export interface ChatGPInstance {
   focus: () => void
 }
 
-/**
- * Backend API call
- */
 const postChatOrQuestion = async (
   chat: Chat,
   messages: ChatMessage[],
@@ -43,8 +39,6 @@ const postChatOrQuestion = async (
   const sendModel = isImageModel ? 'dall-e3' : 'gpt-4.1'
   const type = isImageModel ? 'image' : 'chat'
 
-  const url = '/api/chat'
-
   const data = {
     messages: [...messages],
     input,
@@ -52,7 +46,7 @@ const postChatOrQuestion = async (
     type
   }
 
-  return await fetch(url, {
+  return await fetch('/api/chat', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data)
@@ -81,18 +75,12 @@ const Chat = (props: ChatProps, ref: React.Ref<ChatGPInstance>) => {
   const textAreaRef = useRef<HTMLElement>(null) as React.MutableRefObject<HTMLElement>
   const bottomOfChatRef = useRef<HTMLDivElement>(null)
 
-  /**
-   * SEND MESSAGE
-   */
   const sendMessage = useCallback(
     async (e: React.FormEvent | React.MouseEvent) => {
-      // Prevent form defaults & double clicks
       if (e) e.preventDefault()
       if (isLoading) return
 
-      // Use Ref for current model
       const currentModel = modelRef.current
-
       const input = sanitizeHtml(textAreaRef.current?.innerHTML || '')
       if (!input.trim()) {
         toast.error('Please type a message to continue.')
@@ -130,7 +118,6 @@ const Chat = (props: ChatProps, ref: React.Ref<ChatGPInstance>) => {
 
         if (isImage) {
           const result = await response.json()
-
           if (!result.content) throw new Error('No image returned')
 
           conversation.current = [
@@ -150,7 +137,6 @@ const Chat = (props: ChatProps, ref: React.Ref<ChatGPInstance>) => {
           while (!done) {
             const { value, done: readerDone } = await reader.read()
             const chunk = decoder.decode(value)
-
             if (chunk) {
               resultContent += chunk
               setCurrentMessage(resultContent)
@@ -166,7 +152,6 @@ const Chat = (props: ChatProps, ref: React.Ref<ChatGPInstance>) => {
         }
       } catch (error: any) {
         console.error(error)
-
         if (
           error.message &&
           (error.message.includes('safety') || error.message.includes('policy'))
@@ -188,7 +173,7 @@ const Chat = (props: ChatProps, ref: React.Ref<ChatGPInstance>) => {
 
   const handleKeypress = useCallback(
     (e: React.KeyboardEvent<HTMLDivElement>) => {
-      if (e.keyCode === 13 && !e.shiftKey) {
+      if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault()
         sendMessage(e as any)
       }
@@ -235,7 +220,6 @@ const Chat = (props: ChatProps, ref: React.Ref<ChatGPInstance>) => {
       textAreaRef.current?.focus()
     }
   }))
-
   return (
     <div className="relative flex flex-col h-full bg-background text-foreground">
       {/* Chat area */}
