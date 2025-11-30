@@ -1,146 +1,118 @@
-import { createParser, ParsedEvent, ReconnectInterval } from 'eventsource-parser'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 
-export const runtime = 'edge'
-
-export interface Message {
-  role: string
-  content: string
-}
-
-export async function POST(req: NextRequest) {
+export async function POST(req: Request) {
   try {
-    const { prompt, messages, input } = (await req.json()) as {
-      prompt: string
-      messages: Message[]
-      input: string
-    }
-    const messagesWithHistory = [
-      { content: prompt, role: 'system' },
-      ...messages,
-      { content: input, role: 'user' }
-    ]
+    const body = await req.json()
+    // We now mostly care about 'type' (chat vs image)
+    const { input, type } = body
 
-    const { apiUrl, apiKey, model } = getApiConfig()
-    const stream = await getOpenAIStream(apiUrl, apiKey, model, messagesWithHistory)
-    return new NextResponse(stream, {
-      headers: { 'Content-Type': 'text/event-stream' }
+    // 1. Load Credentials
+    const endpoint = process.env.AZURE_OPENAI_API_BASE_URL
+    const apiKey = process.env.AZURE_OPENAI_API_KEY
+
+    if (!endpoint || !apiKey) {
+      return NextResponse.json({ error: 'Missing Azure Configuration' }, { status: 500 })
+    }
+
+    // 2. QUICK SELECTION: Select Deployment based on TYPE only
+    // This is "Quicker" because it removes the need for string matching maps
+    let deploymentName = ''
+    let apiVersion = ''
+    let url = ''
+    let payload = {}
+
+    // Ensure endpoint ends with /
+    const base = endpoint.endsWith('/') ? endpoint : `${endpoint}/`
+
+    // --- CASE 1: CHAT ---
+    if (type === 'chat') {
+      deploymentName = process.env.AZURE_DEPLOYMENT_GPT4 || 'gpt-4'
+      apiVersion = process.env.AZURE_DEPLOYMENT_GPT4_VERSION || '2024-02-15-preview'
+
+      url = `${base}openai/deployments/${deploymentName}/chat/completions?api-version=${apiVersion}`
+
+      payload = {
+        messages: [{ role: 'user', content: input }],
+        stream: true
+      }
+    }
+    // --- CASE 2: IMAGE ---
+    else if (type === 'image') {
+      deploymentName = process.env.AZURE_DEPLOYMENT_DALLE3 || 'dall-e-3'
+      apiVersion = process.env.AZURE_DEPLOYMENT_DALLE3_VERSION || '2024-02-01'
+
+      url = `${base}openai/deployments/${deploymentName}/images/generations?api-version=${apiVersion}`
+
+      payload = {
+        prompt: input,
+        size: '1024x1024',
+        n: 1
+      }
+    } else {
+      return NextResponse.json({ error: 'Invalid Type' }, { status: 400 })
+    }
+
+    // 3. Fetch
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'api-key': apiKey },
+      body: JSON.stringify(payload)
     })
-  } catch (error) {
-    console.error(error)
-    return NextResponse.json(
-      { success: false, error: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
-    )
-  }
-}
 
-const getApiConfig = () => {
-  const useAzureOpenAI =
-    process.env.AZURE_OPENAI_API_BASE_URL && process.env.AZURE_OPENAI_API_BASE_URL.length > 0
+    if (!response.ok) {
+      const errText = await response.text()
+      // Extract clean error message
+      let errMsg = response.statusText
+      try {
+        const json = JSON.parse(errText)
+        errMsg = json.error?.message || json.error || errText
+      } catch (e) {
+        /* fallback */
+      }
 
-  let apiUrl: string
-  let apiKey: string
-  let model: string
-  if (useAzureOpenAI) {
-    let apiBaseUrl = process.env.AZURE_OPENAI_API_BASE_URL
-    const apiVersion = '2024-12-01-preview'
-    const deployment = process.env.AZURE_OPENAI_DEPLOYMENT || ''
-    if (apiBaseUrl && apiBaseUrl.endsWith('/')) {
-      apiBaseUrl = apiBaseUrl.slice(0, -1)
+      throw new Error(errMsg)
     }
-    apiUrl = `${apiBaseUrl}/openai/deployments/${deployment}/chat/completions?api-version=${apiVersion}`
-    apiKey = process.env.AZURE_OPENAI_API_KEY || ''
-    model = '' // Azure Open AI always ignores the model and decides based on the deployment name passed through.
-  } else {
-    let apiBaseUrl = process.env.OPENAI_API_BASE_URL || 'https://api.openai.com'
-    if (apiBaseUrl && apiBaseUrl.endsWith('/')) {
-      apiBaseUrl = apiBaseUrl.slice(0, -1)
-    }
-    apiUrl = `${apiBaseUrl}/v1/chat/completions`
-    apiKey = process.env.OPENAI_API_KEY || ''
-    model = process.env.OPENAI_MODEL || 'gpt-3.5-turbo'
-  }
 
-  return { apiUrl, apiKey, model }
-}
-
-const getOpenAIStream = async (
-  apiUrl: string,
-  apiKey: string,
-  model: string,
-  messages: Message[]
-) => {
-  const encoder = new TextEncoder()
-  const decoder = new TextDecoder()
-  const res = await fetch(apiUrl, {
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-      'api-key': `${apiKey}`
-    },
-    method: 'POST',
-    body: JSON.stringify({
-      model: model,
-      max_tokens: 4000,
-      messages: messages,
-      stream: true,
-      temperature: 1
-    })
-  })
-
-  if (res.status !== 200) {
-    const statusText = res.statusText
-    const responseBody = await res.text()
-    console.error(`OpenAI API response error: ${responseBody}`)
-    throw new Error(
-      `The OpenAI API has encountered an error with a status code of ${res.status} ${statusText}: ${responseBody}`
-    )
-  }
-
-  return new ReadableStream({
-    async start(controller) {
-      const onParse = (event: ParsedEvent | ReconnectInterval) => {
-        if (event.type === 'event') {
-          const data = event.data
-
-          if (data === '[DONE]') {
+    // 4. Return Response (Stream or JSON)
+    if (type === 'chat') {
+      const stream = new ReadableStream({
+        async start(controller) {
+          const reader = response.body?.getReader()
+          const decoder = new TextDecoder()
+          if (!reader) {
             controller.close()
             return
           }
-
           try {
-            const json = JSON.parse(data)
-            const text = json.choices[0]?.delta?.content
-            if (text !== undefined) {
-              const queue = encoder.encode(text)
-              controller.enqueue(queue)
-            } else {
-              console.error('Received undefined content:', json)
+            while (true) {
+              const { done, value } = await reader.read()
+              if (done) break
+              const chunk = decoder.decode(value)
+              const lines = chunk.split('\n')
+              for (const line of lines) {
+                if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+                  try {
+                    const json = JSON.parse(line.replace('data: ', ''))
+                    const content = json.choices[0]?.delta?.content || ''
+                    if (content) controller.enqueue(new TextEncoder().encode(content))
+                  } catch (e) {}
+                }
+              }
             }
-          } catch (e) {
-            console.error('Error parsing event data:', e)
-            controller.error(e)
+          } finally {
+            controller.close()
           }
         }
-      }
-
-      const parser = createParser(onParse)
-
-      if (res.body) {
-        const reader = res.body.getReader()
-        try {
-          while (true) {
-            const { done, value } = await reader.read()
-            if (done) break
-            // An extra newline is required to make AzureOpenAI work.
-            const str = decoder.decode(value).replace('[DONE]\n', '[DONE]\n\n')
-            parser.feed(str)
-          }
-        } finally {
-          reader.releaseLock()
-        }
-      }
+      })
+      return new Response(stream, { headers: { 'Content-Type': 'text/plain' } })
+    } else {
+      const data = await response.json()
+      return NextResponse.json({
+        content: `![Generated Image](${data.data[0].url})`,
+        role: 'assistant'
+      })
     }
-  })
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
 }
