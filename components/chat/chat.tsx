@@ -9,17 +9,20 @@ import {
   useRef,
   useState
 } from 'react'
+
 import ContentEditable, { ContentEditableEvent } from 'react-contenteditable'
 import { AiOutlineClear, AiOutlineLoading3Quarters } from 'react-icons/ai'
 import { FiSend } from 'react-icons/fi'
 import sanitizeHtml from 'sanitize-html'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+import { Dropdown } from '@/components/ui/dropdown'
+// eslint-disable-next-line import/order
 import { ScrollArea } from '@/components/ui/scroll-area'
+
 import ChatContext from './chatContext'
 import type { Chat, ChatMessage } from './interface'
 import { Message } from './message'
-import { Dropdown } from '@/components/ui/dropdown'
 
 export interface ChatProps {}
 

@@ -1,5 +1,6 @@
 import { dirname } from 'path'
 import { fileURLToPath } from 'url'
+
 import { FlatCompat } from '@eslint/eslintrc'
 
 const __filename = fileURLToPath(import.meta.url)
@@ -11,9 +12,7 @@ const compat = new FlatCompat({
 
 const eslintConfig = [
   {
-    ignores: [
-      'components/ui/**'
-    ]
+    ignores: ['components/ui/**']
   },
   ...compat.extends('next/core-web-vitals', 'next/typescript'),
   ...compat.config({
@@ -35,9 +34,9 @@ const eslintConfig = [
             }
           ],
           pathGroupsExcludedImportTypes: ['react'],
-          'newlines-between': 'never',
+          'newlines-between': 'ignore',
           alphabetize: {
-            order: 'asc',
+            order: 'ignore',
             caseInsensitive: true
           }
         }
