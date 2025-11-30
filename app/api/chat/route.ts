@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
 
-export async function POST(req: Request) {
+export async function POST(_req: Request) {
+  // prefixed _req if unused
   try {
-    const body = await req.json()
-    // We receive 'messages' (history) from the frontend now
+    const body = await _req.json()
     const { input, type, messages } = body
 
     const endpoint = process.env.AZURE_OPENAI_API_BASE_URL
@@ -13,7 +13,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing Azure Configuration' }, { status: 500 })
     }
 
-    // --- 1. GET CURRENT DATE & TIME ---
     const now = new Date()
     const dateTimeString = now.toLocaleString('en-US', {
       weekday: 'long',
@@ -25,7 +24,6 @@ export async function POST(req: Request) {
       timeZoneName: 'short'
     })
 
-    // --- 2. CREATE SYSTEM PROMPT ---
     const systemMessage = {
       role: 'system',
       content: `You are a helpful AI assistant for a healthcare application called "Symptom Checker". 
@@ -37,22 +35,18 @@ export async function POST(req: Request) {
     let payload = {}
     const base = endpoint.endsWith('/') ? endpoint : `${endpoint}/`
 
-    // --- SCENARIO A: CHAT ---
     if (type === 'chat') {
       const deploymentName = process.env.AZURE_DEPLOYMENT_GPT4 || 'gpt-4'
       const apiVersion = process.env.AZURE_DEPLOYMENT_GPT4_VERSION || '2024-02-15-preview'
 
       url = `${base}openai/deployments/${deploymentName}/chat/completions?api-version=${apiVersion}`
-
       const cleanHistory = messages ? messages.filter((m: any) => m.role !== 'system') : []
 
       payload = {
         messages: [systemMessage, ...cleanHistory, { role: 'user', content: input }],
         stream: true
       }
-    }
-    // --- SCENARIO B: IMAGE ---
-    else if (type === 'image') {
+    } else if (type === 'image') {
       const deploymentName = process.env.AZURE_DEPLOYMENT_DALLE3 || 'dall-e-3'
       const apiVersion = process.env.AZURE_DEPLOYMENT_DALLE3_VERSION || '2024-02-01'
 
@@ -67,7 +61,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid Type' }, { status: 400 })
     }
 
-    // Fetch from Azure
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'api-key': apiKey },
@@ -80,13 +73,10 @@ export async function POST(req: Request) {
       try {
         const json = JSON.parse(errText)
         errMsg = json.error?.message || json.error || errText
-      } catch {
-        /* fallback to statusText if parse fails */
-      }
+      } catch {}
       throw new Error(errMsg)
     }
 
-    // Handle Response
     if (type === 'chat') {
       const stream = new ReadableStream({
         async start(controller) {
@@ -108,9 +98,7 @@ export async function POST(req: Request) {
                     const json = JSON.parse(line.replace('data: ', ''))
                     const content = json.choices[0]?.delta?.content || ''
                     if (content) controller.enqueue(new TextEncoder().encode(content))
-                  } catch {
-                    /* ignore parsing errors on partial chunks */
-                  }
+                  } catch {}
                 }
               }
             }
