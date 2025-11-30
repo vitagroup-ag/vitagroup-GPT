@@ -3,10 +3,9 @@ import { NextResponse } from 'next/server'
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    // We now mostly care about 'type' (chat vs image)
-    const { input, type } = body
+    // We receive 'messages' (history) from the frontend now
+    const { input, type, messages } = body
 
-    // 1. Load Credentials
     const endpoint = process.env.AZURE_OPENAI_API_BASE_URL
     const apiKey = process.env.AZURE_OPENAI_API_KEY
 
@@ -14,32 +13,48 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing Azure Configuration' }, { status: 500 })
     }
 
-    // 2. QUICK SELECTION: Select Deployment based on TYPE only
-    // This is "Quicker" because it removes the need for string matching maps
-    let deploymentName = ''
-    let apiVersion = ''
+    // --- 1. GET CURRENT DATE & TIME ---
+    const now = new Date()
+    const dateTimeString = now.toLocaleString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric',
+      timeZoneName: 'short'
+    })
+
+    // --- 2. CREATE SYSTEM PROMPT ---
+    const systemMessage = {
+      role: 'system',
+      content: `You are a helpful AI assistant for a healthcare application called "Symptom Checker". 
+      The current date and time is: ${dateTimeString}. 
+      If the user asks about time or date, use this information.`
+    }
+
     let url = ''
     let payload = {}
-
-    // Ensure endpoint ends with /
     const base = endpoint.endsWith('/') ? endpoint : `${endpoint}/`
 
-    // --- CASE 1: CHAT ---
+    // --- SCENARIO A: CHAT ---
     if (type === 'chat') {
-      deploymentName = process.env.AZURE_DEPLOYMENT_GPT4 || 'gpt-4'
-      apiVersion = process.env.AZURE_DEPLOYMENT_GPT4_VERSION || '2024-02-15-preview'
+      const deploymentName = process.env.AZURE_DEPLOYMENT_GPT4 || 'gpt-4'
+      const apiVersion = process.env.AZURE_DEPLOYMENT_GPT4_VERSION || '2024-02-15-preview'
 
       url = `${base}openai/deployments/${deploymentName}/chat/completions?api-version=${apiVersion}`
 
+      const cleanHistory = messages ? messages.filter((m: any) => m.role !== 'system') : []
+
       payload = {
-        messages: [{ role: 'user', content: input }],
+        messages: [systemMessage, ...cleanHistory, { role: 'user', content: input }],
         stream: true
       }
     }
-    // --- CASE 2: IMAGE ---
+    // --- SCENARIO B: IMAGE ---
     else if (type === 'image') {
-      deploymentName = process.env.AZURE_DEPLOYMENT_DALLE3 || 'dall-e-3'
-      apiVersion = process.env.AZURE_DEPLOYMENT_DALLE3_VERSION || '2024-02-01'
+      const deploymentName = process.env.AZURE_DEPLOYMENT_DALLE3 || 'dall-e-3'
+      const apiVersion = process.env.AZURE_DEPLOYMENT_DALLE3_VERSION || '2024-02-01'
 
       url = `${base}openai/deployments/${deploymentName}/images/generations?api-version=${apiVersion}`
 
@@ -52,7 +67,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid Type' }, { status: 400 })
     }
 
-    // 3. Fetch
+    // Fetch from Azure
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'api-key': apiKey },
@@ -61,19 +76,17 @@ export async function POST(req: Request) {
 
     if (!response.ok) {
       const errText = await response.text()
-      // Extract clean error message
       let errMsg = response.statusText
       try {
         const json = JSON.parse(errText)
         errMsg = json.error?.message || json.error || errText
-      } catch (e) {
-        /* fallback */
+      } catch {
+        /* fallback to statusText if parse fails */
       }
-
       throw new Error(errMsg)
     }
 
-    // 4. Return Response (Stream or JSON)
+    // Handle Response
     if (type === 'chat') {
       const stream = new ReadableStream({
         async start(controller) {
@@ -95,7 +108,9 @@ export async function POST(req: Request) {
                     const json = JSON.parse(line.replace('data: ', ''))
                     const content = json.choices[0]?.delta?.content || ''
                     if (content) controller.enqueue(new TextEncoder().encode(content))
-                  } catch (e) {}
+                  } catch {
+                    /* ignore parsing errors on partial chunks */
+                  }
                 }
               }
             }

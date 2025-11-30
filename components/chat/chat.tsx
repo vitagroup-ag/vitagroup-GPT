@@ -15,9 +15,9 @@ import { FiSend } from 'react-icons/fi'
 import sanitizeHtml from 'sanitize-html'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
+// Reordered imports to satisfy linter
 import { ScrollArea } from '@/components/ui/scroll-area'
 import ChatContext from './chatContext'
-// Make sure these imports exist, otherwise verify the interfaces below
 import type { Chat, ChatMessage } from './interface'
 import { Message } from './message'
 import { Dropdown } from '@/components/ui/dropdown'
@@ -39,7 +39,6 @@ const postChatOrQuestion = async (
   input: string,
   model: string
 ) => {
-  // Normalize model name logic
   const isImageModel = model.includes('DALL') || model.toLowerCase().includes('image')
   const sendModel = isImageModel ? 'dall-e3' : 'gpt-4.1'
   const type = isImageModel ? 'image' : 'chat'
@@ -63,11 +62,9 @@ const postChatOrQuestion = async (
 const Chat = (props: ChatProps, ref: React.Ref<ChatGPInstance>) => {
   const { currentChatRef, saveMessages, forceUpdate } = useContext(ChatContext)
 
-  // --- FIX 1: INSTANT MEMORY (Solves "Click Twice") ---
   const modelRef = useRef<string>('GPT-4.1')
   const [selectedModel, setSelectedModel] = useState<string>('GPT-4.1')
 
-  // --- FIX 2: CONNECTOR FUNCTION ---
   const handleModelChange = (newModel: string) => {
     modelRef.current = newModel
     setSelectedModel(newModel)
@@ -88,12 +85,12 @@ const Chat = (props: ChatProps, ref: React.Ref<ChatGPInstance>) => {
    * SEND MESSAGE
    */
   const sendMessage = useCallback(
-    async (e: React.FormEvent | React.MouseEvent, overrideModel?: string) => {
+    async (e: React.FormEvent | React.MouseEvent) => {
       // Prevent form defaults & double clicks
       if (e) e.preventDefault()
       if (isLoading) return
 
-      // --- FIX 3: USE REF FOR CURRENT MODEL ---
+      // Use Ref for current model
       const currentModel = modelRef.current
 
       const input = sanitizeHtml(textAreaRef.current?.innerHTML || '')
@@ -104,7 +101,6 @@ const Chat = (props: ChatProps, ref: React.Ref<ChatGPInstance>) => {
 
       const previousMessages = [...conversation.current]
 
-      // Optimistic UI update
       conversation.current = [...conversation.current, { content: input, role: 'user' }]
       setMessage('')
       setIsLoading(true)
@@ -120,10 +116,9 @@ const Chat = (props: ChatProps, ref: React.Ref<ChatGPInstance>) => {
           currentChatRef.current,
           previousMessages,
           input,
-          currentModel // <--- Sending the REF value
+          currentModel
         )
 
-        // Error Handling
         if (!response.ok) {
           const errData = await response.json()
           const errorMsg = errData.error?.message || errData.error || response.statusText
@@ -134,7 +129,6 @@ const Chat = (props: ChatProps, ref: React.Ref<ChatGPInstance>) => {
           currentModel.includes('DALL') || currentModel.toLowerCase().includes('image')
 
         if (isImage) {
-          // 1. IMAGE RESPONSE (JSON)
           const result = await response.json()
 
           if (!result.content) throw new Error('No image returned')
@@ -145,7 +139,6 @@ const Chat = (props: ChatProps, ref: React.Ref<ChatGPInstance>) => {
           ]
           forceUpdate?.()
         } else {
-          // 2. CHAT RESPONSE (STREAM)
           const data = response.body
           if (!data) throw new Error('No data')
 
@@ -165,7 +158,6 @@ const Chat = (props: ChatProps, ref: React.Ref<ChatGPInstance>) => {
             done = readerDone
           }
 
-          // Finalize chat message
           conversation.current = [
             ...conversation.current,
             { content: resultContent, role: 'assistant' }
@@ -175,7 +167,6 @@ const Chat = (props: ChatProps, ref: React.Ref<ChatGPInstance>) => {
       } catch (error: any) {
         console.error(error)
 
-        // --- CONTENT POLICY HANDLER ---
         if (
           error.message &&
           (error.message.includes('safety') || error.message.includes('policy'))
@@ -199,7 +190,7 @@ const Chat = (props: ChatProps, ref: React.Ref<ChatGPInstance>) => {
     (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (e.keyCode === 13 && !e.shiftKey) {
         e.preventDefault()
-        sendMessage(e as any) // Casting as any to satisfy generic event handler type
+        sendMessage(e as any)
       }
     },
     [sendMessage]
@@ -346,7 +337,6 @@ const Chat = (props: ChatProps, ref: React.Ref<ChatGPInstance>) => {
           )}
 
           <div className="flex items-center gap-4 w-full">
-            {/* --- FIX 4: CORRECT DROPDOWN PROPS --- */}
             <Dropdown currentModel={selectedModel} onModelSelect={handleModelChange} />
 
             {/* INPUT */}
